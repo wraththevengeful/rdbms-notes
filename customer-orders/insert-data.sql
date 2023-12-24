@@ -1,3 +1,4 @@
+--CUSTOMER ORDERS:
 --customer table:
 INSERT INTO CUSTOMER(CUSTOMERNO, CNAME, CITY) VALUES(40001,'Arul','Chennai'),(40002,'Mathew','Chennai'),(40003,'Ruban','Kanchipuram'),(40004,'Chezhiyan','Villupuram'),(40005,'Kokila','Tiruvannamalai'),(40006,'Aishwarya','Chengalpattu'),(40007,'Shakthi','Tiruvannnamalai'),(40008,'Shiva','Madurai'),(40009,'Periyasamy','Pudukottai'),(40010,'Aashish','Trichy');
 insert into customer(customerno, cname, city) values(40000,'Vijay','Goa');
