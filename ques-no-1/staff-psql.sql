@@ -1,6 +1,7 @@
 --PSQL VERSION:
 
-[CREATE TABLE STAFF (
+--a.Crate tables:
+CREATE TABLE STAFF (
     STAFFNO NUMBER PRIMARY KEY,
     NAME VARCHAR2(255) NOT NULL,
     DOB DATE,
@@ -51,56 +52,58 @@ CREATE TABLE WORKS (
     CONSTRAINT pk_works PRIMARY KEY (STAFFNO, PROJECTNO, DATE_WORKED_ON),
     CONSTRAINT fk_staffno_works FOREIGN KEY (STAFFNO) REFERENCES STAFF(STAFFNO),
     CONSTRAINT fk_projectno_works FOREIGN KEY (PROJECTNO) REFERENCES PROJECT(PROJECTNO)
-); ]
+); 
 
-b[ Populating the Database:
-Use INSERT INTO statements to add data to each table. ]
+--b. Populating the Database:
+Use INSERT INTO statements to add data to each table.
 
-c[SELECT DEPTNO, COUNT(STAFFNO) AS NUM_OF_STAFF
+--c. SQL Query to list the department number and number of staff in each department:
+SELECT DEPTNO, COUNT(STAFFNO) AS NUM_OF_STAFF
 FROM STAFF
-GROUP BY DEPTNO; ]
+GROUP BY DEPTNO; 
 
-d[SELECT *
+--d.SQL Query to list the details of staff who earn less than the average pay of all staff:
+SELECT *
 FROM STAFF
-WHERE BASIC_PAY < (SELECT AVG(BASIC_PAY) FROM STAFF); ]
+WHERE BASIC_PAY < (SELECT AVG(BASIC_PAY) FROM STAFF); 
 
-e[SELECT D.*
+--e. SQL Query to list the details of departments which has more than five working staff in it:
+SELECT D.*
 FROM DEPT D
 JOIN (
     SELECT DEPTNO, COUNT(STAFFNO) AS NUM_OF_STAFF
     FROM STAFF
     GROUP BY DEPTNO
     HAVING COUNT(STAFFNO) > 5
-) S ON D.DEPTNO = S.DEPTNO; ]
+) S ON D.DEPTNO = S.DEPTNO; 
 
---f
-[ SELECT S.*
+--f. SQL Query to list the details of staff who have more than three skills:
+SELECT S.*
 FROM STAFF S
 JOIN (
     SELECT STAFFNO, COUNT(SKILL_CODE) AS NUM_OF_SKILLS
     FROM STAFF_SKILL
     GROUP BY STAFFNO
     HAVING COUNT(SKILL_CODE) > 3
-) SS ON S.STAFFNO = SS.STAFFNO;]
+) SS ON S.STAFFNO = SS.STAFFNO;
 
---SQL Query for Staff with Skills Charge Outrate > 60:
+--g. SQL Query for Staff with Skills Charge Outrate > 60:
 
---g
-[SELECT S.*
+SELECT S.*
 FROM STAFF S
 JOIN STAFF_SKILL SS ON S.STAFFNO = SS.STAFFNO
 JOIN SKILL SK ON SS.SKILL_CODE = SK.SKILL_CODE
-WHERE SK.CHARGE_OUTRATE > 60; ]
+WHERE SK.CHARGE_OUTRATE > 60; 
 
---h
-[CREATE OR REPLACE VIEW DepartmentSummary AS
+--h. Create a view that will keep track of the department number, the department name, the number of employees in the department, and the total basic pay expenditure for each department:
+CREATE OR REPLACE VIEW DepartmentSummary AS
 SELECT D.DEPTNO, D.NAME AS DEPT_NAME, COUNT(S.STAFFNO) AS NUM_OF_EMPLOYEES, SUM(S.BASIC_PAY) AS TOTAL_BASIC_PAY
 FROM DEPT D
 LEFT JOIN STAFF S ON D.DEPTNO = S.DEPTNO
-GROUP BY D.DEPTNO, D.NAME; ]
+GROUP BY D.DEPTNO, D.NAME; 
 
---i
-[CREATE OR REPLACE TRIGGER check_works_limit
+--i. Database trigger that will not permit a staff to work on more than three projects on a day:
+CREATE OR REPLACE TRIGGER check_works_limit
 BEFORE INSERT ON WORKS
 FOR EACH ROW
 DECLARE
@@ -115,10 +118,10 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Staff is not allowed to work on more than three projects in a day');
     END IF;
 END;
-/ ]
+/ 
 
---j
-[CREATE OR REPLACE PROCEDURE INCR(staff_num IN NUMBER, increment_amount IN NUMBER)
+--j. INCR Procedure:
+CREATE OR REPLACE PROCEDURE INCR(staff_num IN NUMBER, increment_amount IN NUMBER)
 IS
     current_basic_pay NUMBER;
 BEGIN
@@ -136,4 +139,4 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20002, 'No such staff number');
     END IF;
 END;
-/ ]
+/ 
