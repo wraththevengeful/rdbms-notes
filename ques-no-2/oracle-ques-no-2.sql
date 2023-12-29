@@ -1,4 +1,5 @@
-a[CREATE TABLE CUSTOMER (
+--a. Create tables:
+CREATE TABLE CUSTOMER (
     CUSTOMERNO VARCHAR2(5) PRIMARY KEY,
     CNAME VARCHAR2(30),
     CITY VARCHAR2(30),
@@ -37,41 +38,48 @@ CREATE TABLE SHIPMENT (
     PRIMARY KEY (ORDERNO, ITEMNO),
     CONSTRAINT fk_shipment_order FOREIGN KEY (ORDERNO) REFERENCES CUST_ORDER(ORDERNO),
     CONSTRAINT fk_shipment_item FOREIGN KEY (ITEMNO) REFERENCES ITEM(ITEMNO)
-); ]
+); 
 
-b[ Populating the Database:
-Use INSERT INTO statements to add data to each table. ]
+--b Populating the Database:
+Use INSERT INTO statements to add data to each table. 
 
-c[ SELECT C.CUSTOMERNO, C.CNAME, COUNT(O.ORDERNO) AS NUM_ORDERS
-FROM CUSTOMER C
-JOIN CUST_ORDER O ON C.CUSTOMERNO = O.CUSTOMERNO
-GROUP BY C.CUSTOMERNO, C.CNAME
-HAVING COUNT(O.ORDERNO) > 3; ]
-
-d[SELECT *
-FROM ITEM
-WHERE UNIT_PRICE < (SELECT AVG(UNIT_PRICE) FROM ITEM); ]
-
-e[SELECT ORDERNO, COUNT(ITEMNO) AS NUM_ITEMS
-FROM ORDER_ITEM
-GROUP BY ORDERNO; ]
-
-f[SELECT ITEMNO, COUNT(DISTINCT ORDERNO) AS ORDER_COUNT
-FROM ORDER_ITEM
-GROUP BY ITEMNO
-HAVING COUNT(DISTINCT ORDERNO) >= (SELECT COUNT(DISTINCT ORDERNO) * 0.25 FROM CUST_ORDER); ]
-
-g[ UPDATE CUST_ORDER
-SET ORD_AMT = /* Your calculation logic for ORD_AMT */
-WHERE /* Your condition */;]
-
-h[CREATE OR REPLACE VIEW CustomerOrderDetails AS
+--c. SQL Query to list the details of customers who have placed more than three orders: 
 SELECT C.CUSTOMERNO, C.CNAME, COUNT(O.ORDERNO) AS NUM_ORDERS
 FROM CUSTOMER C
 JOIN CUST_ORDER O ON C.CUSTOMERNO = O.CUSTOMERNO
-GROUP BY C.CUSTOMERNO, C.CNAME; ]
+GROUP BY C.CUSTOMERNO, C.CNAME
+HAVING COUNT(O.ORDERNO) > 3; 
 
-i[CREATE OR REPLACE TRIGGER max_order_items
+--d. SQL Query to list the details of items whose prive is less than the average of all items:
+SELECT *
+FROM ITEM
+WHERE UNIT_PRICE < (SELECT AVG(UNIT_PRICE) FROM ITEM); 
+
+--e. SQL Query to list the orderno and number of items in each order:
+SELECT ORDERNO, COUNT(ITEMNO) AS NUM_ITEMS
+FROM ORDER_ITEM
+GROUP BY ORDERNO; 
+
+--f. SQL Query to list the details of items that are present in 25% of the orders:
+SELECT ITEMNO, COUNT(DISTINCT ORDERNO) AS ORDER_COUNT
+FROM ORDER_ITEM
+GROUP BY ITEMNO
+HAVING COUNT(DISTINCT ORDERNO) >= (SELECT COUNT(DISTINCT ORDERNO) * 0.25 FROM CUST_ORDER); 
+
+--g.Update Statement to Update ORD_AMT:
+UPDATE CUST_ORDER
+SET ORD_AMT = /* Your calculation logic for ORD_AMT */
+WHERE /* Your condition */;
+
+--h. View to keep track of the details of each customer and the number of orders placed:
+CREATE OR REPLACE VIEW CustomerOrderDetails AS
+SELECT C.CUSTOMERNO, C.CNAME, COUNT(O.ORDERNO) AS NUM_ORDERS
+FROM CUSTOMER C
+JOIN CUST_ORDER O ON C.CUSTOMERNO = O.CUSTOMERNO
+GROUP BY C.CUSTOMERNO, C.CNAME; 
+
+--i. Database Trigger to Limit Insertion in CUST_ORDER Table:
+CREATE OR REPLACE TRIGGER max_order_items
 BEFORE INSERT ON ORDER_ITEM
 FOR EACH ROW
 DECLARE
@@ -85,9 +93,10 @@ BEGIN
     IF cnt >= 6 THEN
         RAISE_APPLICATION_ERROR(-20001, 'Maximum limit reached for this order');
     END IF;
-END; ]
+END; 
 
-j[CREATE OR REPLACE PROCEDURE DISP(order_num IN VARCHAR2)
+--j. DISP Procedure
+CREATE OR REPLACE PROCEDURE DISP(order_num IN VARCHAR2)
 IS
     order_exists NUMBER;
 BEGIN
@@ -104,4 +113,4 @@ BEGIN
 EXCEPTION
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('An error occurred');
-END; ]
+END; 
