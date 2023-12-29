@@ -157,22 +157,29 @@ LEFT JOIN STAFF S ON D.DEPTNO = S.DEPTNO
 GROUP BY D.DEPTNO, D.NAME; 
 
 --i. Database trigger that will not permit a staff to work on more than three projects on a day:
-CREATE OR REPLACE TRIGGER check_works_limit
-BEFORE INSERT ON WORKS
-FOR EACH ROW
+CREATE OR REPLACE FUNCTION check_works_limit()
+RETURNS TRIGGER AS $$
 DECLARE
     projects_count INT;
 BEGIN
     SELECT COUNT(PROJECTNO)
     INTO projects_count
     FROM WORKS
-    WHERE STAFFNO = :NEW.STAFFNO AND DATE_WORKED_ON = :NEW.DATE_WORKED_ON;
+    WHERE STAFFNO = NEW.STAFFNO AND DATE_WORKED_ON = NEW.DATE_WORKED_ON;
 
     IF projects_count >= 3 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Staff is not allowed to work on more than three projects in a day');
+        RAISE EXCEPTION 'Staff is not allowed to work on more than three projects in a day';
     END IF;
+
+    RETURN NEW;
 END;
-/ 
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_works_limit_trigger
+BEFORE INSERT ON WORKS
+FOR EACH ROW
+EXECUTE FUNCTION check_works_limit();
+
 
 --j. INCR Procedure:
 CREATE OR REPLACE PROCEDURE INCR(staff_num IN NUMBER, increment_amount IN NUMBER)
