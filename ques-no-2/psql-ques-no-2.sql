@@ -122,7 +122,7 @@ GROUP BY ORDERNO;
 SELECT ITEMNO, COUNT(DISTINCT ORDERNO) AS ORDER_COUNT
 FROM ORDER_ITEM
 GROUP BY ITEMNO
-HAVING ORDER_COUNT >= (SELECT COUNT(DISTINCT ORDERNO) * 0.25 FROM CUST_ORDER); 
+HAVING COUNT(DISTINCT ORDERNO) >= (SELECT COUNT(DISTINCT ORDERNO) * 0.25 FROM CUST_ORDER); 
 
 --g.Update Statement to Update ORD_AMT:
 The ORD_AMT seems to be a derived attribute, so its value would need to be calculated or updated using an appropriate SQL statement based on the business logic. 
