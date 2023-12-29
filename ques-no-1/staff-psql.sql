@@ -182,9 +182,9 @@ EXECUTE FUNCTION check_works_limit();
 
 
 --j. INCR Procedure:
-CREATE OR REPLACE PROCEDURE INCR(staff_num IN NUMBER, increment_amount IN NUMBER)
-IS
-    current_basic_pay NUMBER;
+CREATE OR REPLACE FUNCTION increment_basic_pay(staff_num INTEGER, increment_amount INTEGER) RETURNS VOID AS $$
+DECLARE
+    current_basic_pay INTEGER;
 BEGIN
     SELECT BASIC_PAY INTO current_basic_pay
     FROM STAFF
@@ -194,10 +194,10 @@ BEGIN
         UPDATE STAFF
         SET BASIC_PAY = BASIC_PAY + increment_amount
         WHERE STAFFNO = staff_num;
-        DBMS_OUTPUT.PUT_LINE('Basic pay updated successfully');
+        RAISE NOTICE 'Basic pay updated successfully';
     ELSE
-        DBMS_OUTPUT.PUT_LINE('Staff has basic pay null');
-        RAISE_APPLICATION_ERROR(-20002, 'No such staff number');
+        RAISE EXCEPTION 'Staff has basic pay null or no such staff number';
     END IF;
 END;
-/ 
+$$ LANGUAGE plpgsql;
+
