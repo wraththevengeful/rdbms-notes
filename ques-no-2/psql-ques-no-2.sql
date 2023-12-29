@@ -135,25 +135,28 @@ JOIN CUST_ORDER O ON C.CUSTOMERNO = O.CUSTOMERNO
 GROUP BY C.CUSTOMERNO, C.CNAME; 
 
 --i. Database Trigger to Limit Insertion in CUST_ORDER Table:
-MySQL does not support row-level triggers, thus direct enforcement of the maximum number of items per order through triggers isn't feasible. You might need to handle this constraint through your application logic.
 
 --j. DISP Procedure
 
-DELIMITER //
-
-CREATE PROCEDURE DISP(IN order_num VARCHAR(5))
+CREATE OR REPLACE FUNCTION DISP(order_num VARCHAR(5))
+RETURNS TABLE (
+    orderno VARCHAR(5),
+    odate DATE,
+    customerno VARCHAR(5),
+    ord_amt INT
+) AS $$
+DECLARE
+    order_exists INT;
 BEGIN
-    DECLARE order_exists INT;
-   
     SELECT COUNT(*) INTO order_exists
     FROM CUST_ORDER
     WHERE ORDERNO = order_num;
-   
-    IF order_exists > 0 THEN
-        SELECT * FROM CUST_ORDER WHERE ORDERNO = order_num;
-    ELSE
-        SELECT 'No such order' AS MESSAGE;
-    END IF;
-END //
 
-DELIMITER ;
+    IF order_exists > 0 THEN
+        RETURN QUERY SELECT * FROM CUST_ORDER WHERE ORDERNO = order_num;
+    ELSE
+        RETURN QUERY SELECT 'No such order' AS MESSAGE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
