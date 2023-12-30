@@ -62,6 +62,7 @@ LEFT JOIN ACCOUNT A ON B.BCODE = A.BCODE
 GROUP BY B.BCODE, B.BNAME;
 
 --e. SQL query to list the details of branches where the number of accounts is less than the average number of accounts in all branches:
+--DOESNT WORK YET:
 SELECT B.BCODE, B.BNAME, COUNT(A.ANO) AS NUM_ACCOUNTS
 FROM BRANCH B
 LEFT JOIN ACCOUNT A ON B.BCODE = A.BCODE
