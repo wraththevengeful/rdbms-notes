@@ -44,14 +44,20 @@ SELECT B.BCODE, B.BNAME, COUNT(A.ANO) AS NUM_ACCOUNTS
 FROM BRANCH B
 LEFT JOIN ACCOUNT A ON B.BCODE = A.BCODE
 GROUP BY B.BCODE, B.BNAME
-HAVING COUNT(A.ANO) < (SELECT AVG(COUNT(ANO)) FROM ACCOUNT GROUP BY BCODE);
+HAVING NUM_ACCOUNTS < (SELECT AVG(NumAccounts) FROM (SELECT BCODE, COUNT(ANO) AS NumAccounts FROM ACCOUNT GROUP BY BCODE) AS Subquery) OR NUM_ACCOUNTS IS NULL;
 
 --f. SQL query to list the details of customers who have performed three transactions on a day:
 SELECT DISTINCT C.CID, C.CNAME
 FROM CUSTOMER C
 JOIN ACCOUNT A ON C.CID = A.CID
 JOIN TRANSACTION T ON A.ANO = T.ANO
-WHERE T.TTDATE IN (SELECT TTDATE FROM TRANSACTION GROUP BY TTDATE HAVING COUNT(TID) = 3);
+WHERE C.CID IN (
+    SELECT A.CID
+    FROM ACCOUNT A
+    JOIN TRANSACTION T ON A.ANO = T.ANO
+    GROUP BY A.CID, T.TTDATE
+    HAVING COUNT(T.TID) >= 3
+);
 
 --g.Create a view that will keep track of branch details and the number of accounts in each branch:
 CREATE VIEW BranchAccountCount AS
@@ -62,9 +68,7 @@ GROUP BY B.BCODE, B.BNAME;
 
 --h.Database trigger to not permit a customer to perform more than three transactions on a day:
 DELIMITER //
-CREATE TRIGGER CheckTransactionLimit
-BEFORE INSERT ON TRANSACTION
-FOR EACH ROW
+CREATE TRIGGER CheckTransactionLimit BEFORE INSERT ON TRANSACTION FOR EACH ROW
 BEGIN
     DECLARE TransactionCount INT;
     SELECT COUNT(*) INTO TransactionCount
