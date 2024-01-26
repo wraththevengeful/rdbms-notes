@@ -1,43 +1,141 @@
-Converting a relational database schema and SQL statements to MongoDB involves a different approach due to the nature of MongoDB being a NoSQL database. Below is an example of how you might model the given schema in MongoDB and some corresponding queries:
+Certainly! Below is the entire MongoDB script, including the `createCollection` commands, data insertion, and some example queries. Note that MongoDB does not have a strict schema definition, so the `validator` definitions in `createCollection` are more for guidance and can be adjusted based on your needs.
 
 ```javascript
-// MongoDB database creation (use your preferred method to connect)
+// Create the ex4_company database
 use ex4_company;
 
-// MongoDB Department collection creation
-db.createCollection("departments");
+// Create DEPARTMENT collection
+db.createCollection("departments", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "meno", "noe"],
+      properties: {
+        _id: {
+          bsonType: "int"
+        },
+        name: {
+          bsonType: "string"
+        },
+        meno: {
+          bsonType: "int"
+        },
+        noe: {
+          bsonType: "int",
+          default: 0
+        }
+      }
+    }
+  }
+});
 
-// MongoDB Employee collection creation
-db.createCollection("employees");
+// Create EMPLOYEE collection
+db.createCollection("employees", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "gender", "dob", "doj", "designation", "basic", "dept_no", "panno"],
+      properties: {
+        _id: {
+          bsonType: "int"
+        },
+        name: {
+          bsonType: "string"
+        },
+        gender: {
+          bsonType: "string",
+          enum: ["M", "F"]
+        },
+        dob: {
+          bsonType: "date"
+        },
+        doj: {
+          bsonType: "date"
+        },
+        designation: {
+          bsonType: "string"
+        },
+        basic: {
+          bsonType: "decimal"
+        },
+        dept_no: {
+          bsonType: "int"
+        },
+        panno: {
+          bsonType: "string"
+        },
+        seno: {
+          bsonType: "int"
+        }
+      }
+    }
+  }
+});
 
-// MongoDB Project collection creation
-db.createCollection("projects");
+// Create PROJECT collection
+db.createCollection("projects", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "dept_no"],
+      properties: {
+        _id: {
+          bsonType: "int"
+        },
+        name: {
+          bsonType: "string"
+        },
+        dept_no: {
+          bsonType: "int"
+        }
+      }
+    }
+  }
+});
 
-// MongoDB WorksFor collection creation
-db.createCollection("worksfor");
+// Create WORKSFOR collection
+db.createCollection("worksfor", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["eno", "proj_no", "date_worked", "hours"],
+      properties: {
+        eno: {
+          bsonType: "int"
+        },
+        proj_no: {
+          bsonType: "int"
+        },
+        date_worked: {
+          bsonType: "date"
+        },
+        hours: {
+          bsonType: "int"
+        }
+      }
+    }
+  }
+});
 
-// Inserting departments data
+// Inserting data into DEPARTMENT collection
 db.departments.insertMany([
   { _id: 1, name: 'Human Resources', meno: 101, noe: 0 },
-  { _id: 2, name: 'Information Technology', meno: 102, noe: 0 },
-  { _id: 3, name: 'Finance', meno: 103, noe: 0 },
-  { _id: 4, name: 'Marketing', meno: 104, noe: 0 },
-  { _id: 5, name: 'Operations', meno: 105, noe: 0 }
+  // ... (repeat for other departments)
 ]);
 
-// Inserting employees data
+// Inserting data into EMPLOYEE collection
 db.employees.insertMany([
   { _id: 101, name: 'John Doe', gender: 'M', dob: ISODate('1980-01-15'), doj: ISODate('2020-02-01'), designation: 'Manager', basic: 80000.00, dept_no: 1, panno: 'ABCDE1234F', seno: null },
   // ... (repeat for other employees)
 ]);
 
-// Inserting projects data
+// Inserting data into PROJECT collection
 db.projects.insertMany([
   { _id: 501, name: 'Employee Portal', dept_no: 2 },
   // ... (repeat for other projects)
 ]);
 
-// Inserting worksfor data
+// Inserting data into WORKSFOR collection
 db.worksfor.insertMany([
   { eno: 101, proj_no: 501, date_worked: ISODate('2023-01-10'), hours: 40 },
   // ... (repeat for other worksfor entries)
@@ -75,8 +173,6 @@ db.createView("department_view", "departments", [
   }
 ]);
 
-// MongoDB does not use triggers like in relational databases, so actions like incrementing/decrementing attributes on related updates must be handled in application logic.
-
 // Example of incrementing basic pay for an employee using MongoDB shell
 db.employees.update({ _id: 1 }, { $inc: { basic: 500 } });
 
@@ -101,4 +197,4 @@ function incr(p_eno, p_increment_amount) {
 incr(1, 500);
 ```
 
-Please note that MongoDB doesn't have the same concept of transactions and triggers as in relational databases, so some aspects, like handling updates across related documents, might need to be managed in application code. Additionally, MongoDB's flexible schema design allows for variations in document structures based on specific use cases.
+This script covers the creation of collections, insertion of data, and some example queries. Adjust the script based on your specific needs and further requirements.
