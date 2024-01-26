@@ -1,0 +1,104 @@
+Converting a relational database schema and SQL statements to MongoDB involves a different approach due to the nature of MongoDB being a NoSQL database. Below is an example of how you might model the given schema in MongoDB and some corresponding queries:
+
+```javascript
+// MongoDB database creation (use your preferred method to connect)
+use ex4_company;
+
+// MongoDB Department collection creation
+db.createCollection("departments");
+
+// MongoDB Employee collection creation
+db.createCollection("employees");
+
+// MongoDB Project collection creation
+db.createCollection("projects");
+
+// MongoDB WorksFor collection creation
+db.createCollection("worksfor");
+
+// Inserting departments data
+db.departments.insertMany([
+  { _id: 1, name: 'Human Resources', meno: 101, noe: 0 },
+  { _id: 2, name: 'Information Technology', meno: 102, noe: 0 },
+  { _id: 3, name: 'Finance', meno: 103, noe: 0 },
+  { _id: 4, name: 'Marketing', meno: 104, noe: 0 },
+  { _id: 5, name: 'Operations', meno: 105, noe: 0 }
+]);
+
+// Inserting employees data
+db.employees.insertMany([
+  { _id: 101, name: 'John Doe', gender: 'M', dob: ISODate('1980-01-15'), doj: ISODate('2020-02-01'), designation: 'Manager', basic: 80000.00, dept_no: 1, panno: 'ABCDE1234F', seno: null },
+  // ... (repeat for other employees)
+]);
+
+// Inserting projects data
+db.projects.insertMany([
+  { _id: 501, name: 'Employee Portal', dept_no: 2 },
+  // ... (repeat for other projects)
+]);
+
+// Inserting worksfor data
+db.worksfor.insertMany([
+  { eno: 101, proj_no: 501, date_worked: ISODate('2023-01-10'), hours: 40 },
+  // ... (repeat for other worksfor entries)
+]);
+
+// Query to find employees earning less than the average basic pay
+db.employees.find({ basic: { $lt: db.employees.aggregate([{ $group: { _id: null, avgBasic: { $avg: "$basic" } } }]).next().avgBasic } });
+
+// Query to find departments with more than six employees
+db.departments.find({ noe: { $gt: 6 } });
+
+// Creating a view-like structure in MongoDB
+db.createView("department_view", "departments", [
+  {
+    $lookup: {
+      from: "employees",
+      localField: "_id",
+      foreignField: "dept_no",
+      as: "employees"
+    }
+  },
+  {
+    $group: {
+      _id: { _id: "$_id", name: "$name", noe: "$noe" },
+      totalBasicPay: { $sum: "$employees.basic" }
+    }
+  },
+  {
+    $project: {
+      _id: "$_id._id",
+      name: "$_id.name",
+      noe: "$_id.noe",
+      totalBasicPay: 1
+    }
+  }
+]);
+
+// MongoDB does not use triggers like in relational databases, so actions like incrementing/decrementing attributes on related updates must be handled in application logic.
+
+// Example of incrementing basic pay for an employee using MongoDB shell
+db.employees.update({ _id: 1 }, { $inc: { basic: 500 } });
+
+// Example procedure-like logic for MongoDB
+function incr(p_eno, p_increment_amount) {
+  const employee = db.employees.findOne({ _id: p_eno });
+
+  if (!employee) {
+    print("No such employee number");
+    return;
+  }
+
+  if (employee.basic === null) {
+    print("Employee has basic pay null");
+    return;
+  }
+
+  db.employees.update({ _id: p_eno }, { $inc: { basic: p_increment_amount } });
+}
+
+// To call the procedure-like logic
+incr(1, 500);
+```
+
+Please note that MongoDB doesn't have the same concept of transactions and triggers as in relational databases, so some aspects, like handling updates across related documents, might need to be managed in application code. Additionally, MongoDB's flexible schema design allows for variations in document structures based on specific use cases.
