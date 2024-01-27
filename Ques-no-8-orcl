@@ -1,0 +1,146 @@
+Certainly! Here is the complete code with the adjustments for Oracle database:
+
+```sql
+-- CUSTOMER table
+CREATE TABLE CUSTOMER (
+    CUSTOMER_ID VARCHAR2(5) CONSTRAINT pk_customer PRIMARY KEY,
+    CUSTOMER_NAME VARCHAR2(30)
+);
+
+-- PRODUCT table
+CREATE TABLE PRODUCT (
+    PRODUCT_CODE VARCHAR2(5) CONSTRAINT pk_product PRIMARY KEY,
+    PRODUCT_NAME VARCHAR2(30),
+    UNIT_PRICE NUMBER(5, 0)
+);
+
+-- CUST_ORDER table
+CREATE TABLE CUST_ORDER (
+    ORDER_CODE VARCHAR2(5) CONSTRAINT chk_order_code CHECK (ORDER_CODE LIKE 'O%'),
+    ORDER_DATE DATE,
+    ORDER_AMT NUMBER(8, 2),
+    CUSTOMER_ID VARCHAR2(5),
+    CONSTRAINT pk_cust_order PRIMARY KEY (ORDER_CODE),
+    CONSTRAINT fk_cust_order_customer FOREIGN KEY (CUSTOMER_ID) REFERENCES CUSTOMER(CUSTOMER_ID)
+);
+
+-- ORDER_PRODUCT table
+CREATE TABLE ORDER_PRODUCT (
+    ORDER_CODE VARCHAR2(5),
+    PRODUCT_CODE VARCHAR2(5),
+    NO_OF_UNITS NUMBER(3, 0),
+    CONSTRAINT pk_order_product PRIMARY KEY (ORDER_CODE, PRODUCT_CODE),
+    CONSTRAINT fk_order_product_order FOREIGN KEY (ORDER_CODE) REFERENCES CUST_ORDER(ORDER_CODE),
+    CONSTRAINT fk_order_product_product FOREIGN KEY (PRODUCT_CODE) REFERENCES PRODUCT(PRODUCT_CODE)
+);
+
+-- Insert data into CUSTOMER table
+INSERT INTO CUSTOMER VALUES ('C001', 'John Doe'), ('C002', 'Jane Smith');
+
+-- Insert data into PRODUCT table
+INSERT INTO PRODUCT VALUES ('P001', 'Product1', 50), ('P002', 'Product2', 60);
+
+-- Insert data into CUST_ORDER table
+INSERT INTO CUST_ORDER VALUES ('O001', TO_DATE('2023-01-01', 'YYYY-MM-DD'), 500, 'C001'), ('O002', TO_DATE('2023-01-02', 'YYYY-MM-DD'), 600, 'C002');
+
+-- Insert data into ORDER_PRODUCT table
+INSERT INTO ORDER_PRODUCT VALUES ('O001', 'P001', 2), ('O001', 'P002', 3), ('O002', 'P001', 4);
+
+-- SQL query to list the details of the product whose price is greater than average price of all products
+SELECT *
+FROM PRODUCT
+WHERE UNIT_PRICE > (SELECT AVG(UNIT_PRICE) FROM PRODUCT);
+
+-- SQL query to list the order code and the no of products in each order
+SELECT OP.ORDER_CODE, COUNT(OP.PRODUCT_CODE) AS NUM_OF_PRODUCTS
+FROM ORDER_PRODUCT OP
+GROUP BY OP.ORDER_CODE;
+
+-- SQL query to list the details of the products which are contained in more than 30% of the orders
+WITH ProductOrderPercentage AS (
+    SELECT PRODUCT_CODE, COUNT(DISTINCT ORDER_CODE) * 100.0 / COUNT(DISTINCT OP.ORDER_CODE) AS PERCENTAGE
+    FROM ORDER_PRODUCT OP
+    GROUP BY PRODUCT_CODE
+)
+
+SELECT P.*
+FROM PRODUCT P
+JOIN ProductOrderPercentage POP ON P.PRODUCT_CODE = POP.PRODUCT_CODE
+WHERE PERCENTAGE > 30;
+
+-- Update statement to update the ORDER_AMT in CUST_ORDER table
+UPDATE CUST_ORDER
+SET ORDER_AMT = NEW_VALUE
+WHERE <your_condition>;
+
+-- SQL Query to list the details of customers who have placed more than 5% of the orders
+WITH CustomerOrderPercentage AS (
+    SELECT
+        C.CUSTOMER_ID,
+        COUNT(DISTINCT CO.ORDER_CODE) * 100.0 / COUNT(DISTINCT OPO.ORDER_CODE) AS PERCENTAGE
+    FROM
+        CUSTOMER C
+        LEFT JOIN CUST_ORDER CO ON C.CUSTOMER_ID = CO.CUSTOMER_ID
+        LEFT JOIN ORDER_PRODUCT OPO ON CO.ORDER_CODE = OPO.ORDER_CODE
+    GROUP BY
+        C.CUSTOMER_ID
+)
+
+SELECT
+    C.CUSTOMER_ID,
+    C.CUSTOMER_NAME
+FROM
+    CUSTOMER C
+    JOIN CustomerOrderPercentage COP ON C.CUSTOMER_ID = COP.CUSTOMER_ID
+WHERE
+    PERCENTAGE > 5;
+
+-- SQL query to list the details of the products which are contained in less than 10% of the orders
+WITH ProductOrderPercentage AS (
+    SELECT PRODUCT_CODE, COUNT(DISTINCT ORDER_CODE) * 100.0 / COUNT(DISTINCT OP.ORDER_CODE) AS PERCENTAGE
+    FROM ORDER_PRODUCT OP
+    GROUP BY PRODUCT_CODE
+)
+
+SELECT P.*
+FROM PRODUCT P
+JOIN ProductOrderPercentage POP ON P.PRODUCT_CODE = POP.PRODUCT_CODE
+WHERE PERCENTAGE < 10;
+
+-- Create a view that will keep track of details of customers and the number of orders placed by each customer
+CREATE VIEW CustomerOrderCount AS
+SELECT C.CUSTOMER_ID, C.CUSTOMER_NAME, COUNT(CO.ORDER_CODE) AS NUM_OF_ORDERS
+FROM CUSTOMER C
+LEFT JOIN CUST_ORDER CO ON C.CUSTOMER_ID = CO.CUSTOMER_ID
+GROUP BY C.CUSTOMER_ID, C.CUSTOMER_NAME;
+
+-- Database trigger that will not permit inserting more than six records in the CUST_ORDER table for a particular order
+CREATE OR REPLACE TRIGGER order_item_limit_trigger
+BEFORE INSERT ON CUST_ORDER
+FOR EACH ROW
+BEGIN
+    IF (SELECT COUNT(*) FROM CUST_ORDER WHERE ORDER_CODE = :NEW.ORDER_CODE) >= 6 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot insert more than six records for a particular order');
+    END IF;
+END;
+/
+
+-- Procedure DISP that will accept an order number and display the order details CUST_ORDER
+CREATE OR REPLACE PROCEDURE DISP(order_code_in VARCHAR2)
+AS
+    order_details CUST_ORDER%ROWTYPE;
+BEGIN
+    SELECT * INTO order_details
+    FROM CUST_ORDER
+    WHERE ORDER_CODE = order_code_in;
+
+    -- Display order details
+    DBMS_OUTPUT.PUT_LINE('Order Code: ' || order_details.ORDER_CODE || ', Order Date: ' || TO_CHAR(order_details.ORDER_DATE, 'YYYY-MM-DD') || ', Order Amount: ' || order_details.ORDER_AMT);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No such order: ' || order_code_in);
+END DISP;
+/
+```
+
+This code should work in an Oracle database environment. Note that the `DBMS_OUTPUT.PUT_LINE` is used for displaying output in the `DISP` procedure.
