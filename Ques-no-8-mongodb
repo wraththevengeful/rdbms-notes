@@ -1,0 +1,190 @@
+// CUSTOMER collection
+db.createCollection("CUSTOMER", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["CUSTOMER_ID", "CUSTOMER_NAME"],
+      properties: {
+        CUSTOMER_ID: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        CUSTOMER_NAME: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        }
+      }
+    }
+  }
+});
+
+// PRODUCT collection
+db.createCollection("PRODUCT", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["PRODUCT_CODE", "PRODUCT_NAME", "UNIT_PRICE"],
+      properties: {
+        PRODUCT_CODE: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        PRODUCT_NAME: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        UNIT_PRICE: {
+          bsonType: "double",
+          description: "Must be a double and is required"
+        }
+      }
+    }
+  }
+});
+
+// CUST_ORDER collection
+db.createCollection("CUST_ORDER", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["ORDER_CODE", "ORDER_DATE", "ORDER_AMT", "CUSTOMER_ID"],
+      properties: {
+        ORDER_CODE: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        ORDER_DATE: {
+          bsonType: "date",
+          description: "Must be a date and is required"
+        },
+        ORDER_AMT: {
+          bsonType: "double",
+          description: "Must be a double and is required"
+        },
+        CUSTOMER_ID: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        }
+      }
+    }
+  }
+});
+
+// ORDER_PRODUCT collection
+db.createCollection("ORDER_PRODUCT", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["ORDER_CODE", "PRODUCT_CODE", "NO_OF_UNITS"],
+      properties: {
+        ORDER_CODE: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        PRODUCT_CODE: {
+          bsonType: "string",
+          description: "Must be a string and is required"
+        },
+        NO_OF_UNITS: {
+          bsonType: "int",
+          description: "Must be an integer and is required"
+        }
+      }
+    }
+  }
+});
+
+// Indexing for performance optimization
+db.CUSTOMER.createIndex({ "CUSTOMER_ID": 1 }, { unique: true });
+db.PRODUCT.createIndex({ "PRODUCT_CODE": 1 }, { unique: true });
+db.CUST_ORDER.createIndex({ "ORDER_CODE": 1 }, { unique: true });
+db.ORDER_PRODUCT.createIndex({ "ORDER_CODE": 1, "PRODUCT_CODE": 1 }, { unique: true });
+
+// Insert data into CUSTOMER collection
+db.CUSTOMER.insertMany([
+  { CUSTOMER_ID: 'C001', CUSTOMER_NAME: 'John Doe' },
+  { CUSTOMER_ID: 'C002', CUSTOMER_NAME: 'Jane Smith' }
+]);
+
+// Insert data into PRODUCT collection
+db.PRODUCT.insertMany([
+  { PRODUCT_CODE: 'P001', PRODUCT_NAME: 'Product1', UNIT_PRICE: 50 },
+  { PRODUCT_CODE: 'P002', PRODUCT_NAME: 'Product2', UNIT_PRICE: 60 }
+]);
+
+// Insert data into CUST_ORDER collection
+db.CUST_ORDER.insertMany([
+  { ORDER_CODE: 'O001', ORDER_DATE: ISODate('2023-01-01'), ORDER_AMT: 500, CUSTOMER_ID: 'C001' },
+  { ORDER_CODE: 'O002', ORDER_DATE: ISODate('2023-01-02'), ORDER_AMT: 600, CUSTOMER_ID: 'C002' }
+]);
+
+// Insert data into ORDER_PRODUCT collection
+db.ORDER_PRODUCT.insertMany([
+  { ORDER_CODE: 'O001', PRODUCT_CODE: 'P001', NO_OF_UNITS: 2 },
+  { ORDER_CODE: 'O001', PRODUCT_CODE: 'P002', NO_OF_UNITS: 3 },
+  { ORDER_CODE: 'O002', PRODUCT_CODE: 'P001', NO_OF_UNITS: 4 }
+]);
+
+// Find details of the product whose price is greater than average price of all products
+db.PRODUCT.find({ UNIT_PRICE: { $gt: db.PRODUCT.aggregate([{ $group: { _id: null, avgPrice: { $avg: "$UNIT_PRICE" } } }]).toArray()[0].avgPrice } });
+
+// Find order code and the number of products in each order
+db.ORDER_PRODUCT.aggregate([{ $group: { _id: "$ORDER_CODE", NUM_OF_PRODUCTS: { $sum: 1 } } }]);
+
+// Find details of the products which are contained in more than 30% of the orders
+var productOrderPercentage = db.ORDER_PRODUCT.aggregate([
+  { $group: { _id: "$PRODUCT_CODE", ordersCount: { $sum: 1 } } },
+  { $lookup: { from: "CUST_ORDER", localField: "_id", foreignField: "ORDER_CODE", as: "orders" } },
+  { $addFields: { percentage: { $multiply: [{ $divide: [{ $size: "$orders" }, "$ordersCount"] }, 100] } } },
+  { $match: { percentage: { $gt: 30 } } }
+]);
+
+// Update ORDER_AMT in CUST_ORDER collection (assuming a specific condition)
+db.CUST_ORDER.updateMany({ /* Add your condition here */ }, { $set: { ORDER_AMT: /* Set the new value */ } });
+
+// Find details of customers who have placed more than 5% of the orders
+var customerOrderPercentage = db.CUSTOMER.aggregate([
+  { $lookup: { from: "CUST_ORDER", localField: "CUSTOMER_ID", foreignField: "CUSTOMER_ID", as: "orders" } },
+  { $addFields: { ordersCount: { $size: "$orders" } } },
+  { $lookup: { from: "ORDER_PRODUCT", localField: "orders.ORDER_CODE", foreignField: "ORDER_CODE", as: "orderProducts" } },
+  { $addFields: { productsCount: { $size: "$orderProducts" } } },
+  { $addFields: { percentage: { $multiply: [{ $divide: ["$ordersCount", "$productsCount"] }, 100] } } },
+  { $match: { percentage: { $gt: 5 } } },
+  { $project: { CUSTOMER_ID: 1, CUSTOMER_NAME: 1 } }
+]);
+
+// Find details of the products which are contained in less than 10% of the orders
+var productOrderPercentageLessThan10 = db.ORDER_PRODUCT.aggregate([
+  { $group: { _id: "$PRODUCT_CODE", ordersCount: { $sum: 1 } } },
+  { $lookup: { from: "CUST_ORDER", localField: "_id", foreignField: "ORDER_CODE", as: "orders" } },
+  { $addFields: { percentage: { $multiply: [{ $divide: [{ $size: "$orders" }, "$ordersCount"] }, 100] } } },
+  { $match: { percentage: { $lt: 10 } } }
+]);
+
+// Create a view to keep track of details of customers and the number of orders placed by each customer
+db.createView("CustomerOrderCount", "CUSTOMER", [
+  { $lookup: { from: "CUST_ORDER", localField: "CUSTOMER_ID", foreignField: "CUSTOMER_ID", as: "orders" } },
+  { $addFields: { NUM_OF_ORDERS: { $size: "$orders" } } },
+  { $project: { CUSTOMER_ID: 1, CUSTOMER_NAME: 1, NUM_OF_ORDERS: 1 } }
+]);
+
+// Database trigger-like functionality (assuming MongoDB version >= 4.2)
+db.CUST_ORDER.watch([
+  { $match: { operationType: { $in: ["insert", "update", "replace"] } } },
+  { $addFields: { orderItemCount: { $size: "$fullDocument.ORDER_ITEMS" } } },
+  { $match: { orderItemCount: { $gt: 6 } } }
+]);
+
+// Procedure-like functionality to display order details
+var DISP = function(orderCodeIn) {
+  var orderDetails = db.CUST_ORDER.findOne({ ORDER_CODE: orderCodeIn });
+
+  if (orderDetails) {
+    print("Order Code: " + orderDetails.ORDER_CODE + ", Order Date: " + orderDetails.ORDER_DATE.toISOString() + ", Order Amount: " + orderDetails.ORDER_AMT);
+  } else {
+    print("No such order: " + orderCodeIn);
+  }
+};
+
+// Example usage of DISP procedure-like functionality
+DISP("O001");
